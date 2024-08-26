@@ -1,0 +1,7 @@
+*.lock
+.env
+**/__pycache__/**
+elasticsearchdata
+.idea
+src/packages/rag-elasticsearch/data
+src/documents

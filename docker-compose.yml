@@ -1,0 +1,118 @@
+networks:
+  backend:
+
+volumes:
+  elasticsearchdata:
+  rabbitmqdata:
+  mongodata:
+
+services:
+  langserve:
+    restart: always
+    init: true
+    build:
+      dockerfile: ./src/Dockerfile
+      context: .
+      args:
+        INSTALL_DEV_DEPENDENCIES: 'true'
+    command: bash -c "sleep 20 && uvicorn app.server:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - '8000:8000'
+    depends_on:
+      - elasticsearch
+      - mongodb
+    volumes:
+      - ./src:/app
+    networks:
+      - backend
+    env_file:
+      - .env
+
+  streamlit:
+    restart: always
+    init: true
+    build:
+      dockerfile: ./src/Dockerfile
+      context: .
+      args:
+        INSTALL_DEV_DEPENDENCIES: 'true'
+    command: streamlit run streamlit.py
+    ports:
+      - '8501:8501'
+    depends_on:
+      - elasticsearch
+      - mongodb
+      - worker
+      - rabbitmq
+    volumes:
+      - ./src:/app
+    networks:
+      - backend
+    env_file:
+      - .env
+
+  elasticsearch:
+    restart: always
+    image: elasticsearch:8.12.1
+    environment:
+      - xpack.security.enabled=false
+      - node.name=rag
+      - action.auto_create_index=true
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - 'ES_JAVA_OPTS=-Xms1g -Xmx4g'
+      - discovery.type=single-node
+      - path.repo=snapshots
+      - network.tcp.keep_alive=true
+      - network.tcp.keep_idle=60
+      - network.tcp.keep_interval=3
+      - network.tcp.keep_count=5
+    expose:
+      - '9200'
+    volumes:
+      - elasticsearchdata:/usr/share/elasticsearch/data
+    networks:
+      - backend
+
+  rabbitmq:
+    restart: always
+    image: rabbitmq:3.9.11-management
+    hostname: 'rabbit'
+    expose:
+      - '5672'
+    networks:
+      - backend
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+
+  worker:
+    restart: always
+    init: true
+    build:
+      dockerfile: ./src/Dockerfile
+      context: .
+      args:
+        INSTALL_DEV_DEPENDENCIES: 'true'
+    command: celery -A app.celery worker --pool=threads --concurrency=2 -Q document_queue --loglevel=DEBUG -n document_queue@%%h
+    expose:
+      - '9001'
+    depends_on:
+      - elasticsearch
+      - mongodb
+    volumes:
+      - ./src:/app
+    networks:
+      - backend
+    env_file:
+      - .env
+
+  mongodb:
+    restart: always
+    image: mongo:6.0.15
+    ports:
+      - '27012:27017'
+    volumes:
+      - mongodata:/data/db
+    command: --profile 1 --slowms 100 --slowOpSampleRate 1
+    networks:
+      - backend

@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "src"
+version = "0.1.0"
+description = ""
+authors = ["Pyoungwon Seo <485field@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "app" },
+]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+langserve = "^0.0.51"
+
+openai = "^1.14.2"
+uvicorn = "^0.23.2"
+pydantic = "^2.6.4"
+langchain = "^0.1.13"
+langchain-cli = "^0.0.21"
+langchain-teddynote = "^0.0.26"
+langchain-openai = "^0.1"
+python-dotenv = "^1.0.1"
+langsmith = "^0.1.104"
+torch = "2.0.1"
+pypdf = "^4.0.0"
+python-multipart="^0.0.9"
+pydantic-settings = "^2.1.0"
+cryptography = "^43.0.0"
+beanie = "^1.18.0"
+celery = "^5.2.7"
+streamlit = "^1.32.2"
+nest-asyncio = "^1.6.0"
+
+rag-elasticsearch = {path = "packages/rag-elasticsearch", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+langchain-cli = ">=0.0.15"
+black = "^23.10.1"
+isort = "^5.12.0"
+pycln = "^2.3.0"
+pytest = "^7.4.3"
+pre-commit = "^3.5.0"
+pytest-asyncio = "^0.23.2"
+httpx = "^0.25.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
