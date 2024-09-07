@@ -3,26 +3,54 @@ import logging as lg
 import os
 
 import nest_asyncio
+import requests
 from langchain_core.messages.chat import ChatMessage
 from langchain_teddynote import logging
 from rag_elasticsearch import chain as rag_elasticsearch_chain
 
 import streamlit as st
 from app import settings
-from app.bo.knowledge_document import (
-    create_knowledge_document,
-    delete_knowledge_document,
-    get_knowledge_documents,
-)
+from app.settings import DOCUMENTS_DIR
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 nest_asyncio.apply()
 loop = asyncio.get_event_loop()
 
 logger = lg.getLogger(__name__)
 
-DOCUMENTS_DIR = "./documents/"
-
 logging.langsmith(settings.PROJECT_NAME)
+
+BASE_URL = "http://langserve:8000/knowledge_document/"
+UPLOAD_URL = "http://langserve:8000/knowledge_document/upload/"
+
+
+def upload_document(uploaded_file: UploadedFile):
+    response = requests.post(
+        UPLOAD_URL,
+        files={"file": (uploaded_file.name, uploaded_file, uploaded_file.type)},
+    )
+    if response.status_code == 200:
+        st.success("Files uploaded successfully to FastAPI!")
+    else:
+        st.error(f"Failed to upload files: {response.content.decode()}")
+
+
+def fetch_documents():
+    response = requests.get(BASE_URL)
+    if response.status_code == 200:
+        return response.json().get("documents", [])
+    else:
+        st.error("Failed to fetch documents from server.")
+        return []
+
+
+def delete_document(file_path: str):
+    file_name = file_path.split("/")[-1]
+    response = requests.delete(BASE_URL, params={"file_path": file_path})
+    if response.status_code == 200:
+        st.warning(f"{file_name} has been deleted!")
+    else:
+        st.error(f"Failed to delete document: {response.content.decode()}")
 
 
 def print_messages():
@@ -43,16 +71,9 @@ if "messages" not in st.session_state:
 
 st.title("PDF RAG CHAT")
 
-if "store" not in st.session_state:
-    st.session_state["store"] = {}
-
 # sidebar
 with st.sidebar:
     clear_btn = st.button("Reset Chat")
-
-    # upload file
-    if not os.path.exists(DOCUMENTS_DIR):
-        os.makedirs(DOCUMENTS_DIR)
 
     st.header("Documents")
     uploaded_files = st.file_uploader(
@@ -60,32 +81,21 @@ with st.sidebar:
     )
     if uploaded_files:
         for uploaded_file in uploaded_files:
-            file_path = os.path.join(DOCUMENTS_DIR, uploaded_file.name)
-            if os.path.exists(file_path):
-                st.write(f"File {uploaded_file.name} already exists.")
-                continue
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            loop.run_until_complete(create_knowledge_document(file_path, uploaded_file))
+            upload_document(uploaded_file)
 
     if os.listdir(DOCUMENTS_DIR):
         st.header("List")
-        documents = loop.run_until_complete(get_knowledge_documents())
+        documents = fetch_documents()
         if documents:
             for document in documents:
                 col1, col2, col3 = st.columns([3, 1, 1])
                 with col1:
-                    st.write(document.file_name)
+                    st.write(document["file_name"])
                 with col2:
-                    st.write(document.status)
+                    st.write(document["status"])
                 with col3:
                     if st.button("Delete", key=document):
-                        file_path = document.file_path
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                        loop.run_until_complete(delete_knowledge_document(file_path))
-                        st.warning(f"{document.file_name} has been deleted!")
-
+                        delete_document(document["file_path"])
 
 # reset
 if clear_btn:

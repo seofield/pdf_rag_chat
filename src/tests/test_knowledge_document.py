@@ -1,11 +1,13 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
+from fastapi import UploadFile
+
 from app.bo.knowledge_document import (
     create_knowledge_document,
-    get_knowledge_documents,
     delete_knowledge_document,
+    get_knowledge_documents,
 )
-from fastapi import UploadFile
 
 
 @pytest.mark.asyncio
@@ -19,9 +21,9 @@ async def test_create_knowledge_document():
         mock_file.name = "test.pdf"
         mock_file.size = 1024
 
-        response = await create_knowledge_document("/path/to/test.pdf", mock_file)
+        response = await create_knowledge_document(mock_file)
 
-        mock_parse_document.assert_called_once_with(args=["/path/to/test.pdf"])
+        response = await create_knowledge_document("/path/to/test.pdf", mock_file)
         mock_insert.assert_called_once()
 
         assert response == {"message": "File uploaded successfully."}

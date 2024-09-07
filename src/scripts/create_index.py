@@ -7,7 +7,6 @@ from elasticsearch import Elasticsearch
 
 from app import settings
 
-
 es = Elasticsearch(hosts=settings.ES_URL)
 
 mapping = {

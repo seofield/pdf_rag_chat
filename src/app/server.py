@@ -6,6 +6,7 @@ from langserve import add_routes
 from rag_elasticsearch import chain as rag_elasticsearch_chain
 
 from app import settings
+from app.api import knowledge_document
 from app.database import init_db
 
 logging.langsmith(settings.PROJECT_NAME)
@@ -38,6 +39,12 @@ add_routes(
     enable_public_trace_link_endpoint=True,
     playground_type="chat",
     path="/rag-elasticsearch",
+)
+
+app.include_router(
+    knowledge_document.router,
+    prefix="/knowledge_document",
+    tags=["Knowledge Documents"],
 )
 
 if __name__ == "__main__":
