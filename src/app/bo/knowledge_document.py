@@ -8,6 +8,7 @@ from app.models.knowledge_document import KnowledgeDocument
 from app.schema import KnowledgeDocumentSchema
 from app.settings import DOCUMENTS_DIR
 from app.tasks.knowledge_document import parse_document
+from app.vectorstore import BaseElasticSearch
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ async def get_knowledge_documents():
 
 async def delete_knowledge_document(file_path: str):
     await KnowledgeDocument.find({"file_path": file_path}).delete()
+    BaseElasticSearch.delete_documents_by_source(file_path)
     delete_file(file_path)
     return {"message": "File deleted successfully."}
 
