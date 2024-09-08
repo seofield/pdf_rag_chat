@@ -107,7 +107,7 @@ print_messages()
 user_input = st.chat_input("질문을 입력하세요.")
 if user_input:
     response = rag_elasticsearch_chain.stream(
-        {"question": user_input},
+        {"question": user_input, "chat_history": st.session_state["messages"]}
     )
 
     st.chat_message("user").write(user_input)

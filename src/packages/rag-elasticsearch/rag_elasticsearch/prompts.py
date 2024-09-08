@@ -15,7 +15,7 @@ CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(
 # We also ask the LLM to cite the source of the passage it is answering from
 llm_context_prompt_template = """
 Use the following passages to answer the user's question.
-Each passage has a SOURCE which is the title of the document. When answering, cite source name of the passages you are answering from below the answer in a unique bullet point list.
+Each passage has a SOURCE, which is the title of the document, and a PAGE. When answering, cite both the source name and the page number of the passages you are answering from below the answer in a unique bullet point list.
 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
@@ -31,7 +31,8 @@ LLM_CONTEXT_PROMPT = ChatPromptTemplate.from_template(llm_context_prompt_templat
 # Used to build a context window from passages retrieved
 document_prompt_template = """
 ---
-NAME: {name}
+SOURCE: {source}
+PAGE: {page}
 PASSAGE:
 {page_content}
 ---
